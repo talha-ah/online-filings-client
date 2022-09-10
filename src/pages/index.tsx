@@ -1,119 +1,80 @@
-import React, { useState, useEffect } from "react"
 import Head from "next/head"
 import type { NextPage } from "next"
+import React, { useState, useEffect } from "react"
+
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime"
 
 import Box from "@mui/material/Box"
+import { Theme } from "@mui/material/styles"
 import AddIcon from "@mui/icons-material/Add"
-
+import { styled } from "@mui/material/styles"
 import TextField from "@mui/material/TextField"
-import Accordion from "@mui/material/Accordion"
+import InputBase from "@mui/material/InputBase"
 import Typography from "@mui/material/Typography"
-import AccordionSummary from "@mui/material/AccordionSummary"
-import AccordionDetails from "@mui/material/AccordionDetails"
+import MuiAccordion from "@mui/material/Accordion"
+import SearchIcon from "@mui/icons-material/Search"
+import InputAdornment from "@mui/material/InputAdornment"
+import CircularProgress from "@mui/material/CircularProgress"
+import MuiAccordionDetails from "@mui/material/AccordionDetails"
+import ArrowForwardIosSharpIcon from "@mui/icons-material/ArrowForwardIosSharp"
+import FiberManualRecordOutlinedIcon from "@mui/icons-material/FiberManualRecordOutlined"
+import MuiAccordionSummary, {
+  AccordionSummaryProps,
+} from "@mui/material/AccordionSummary"
 
-import List from "@mui/material/List"
-import ListItem from "@mui/material/ListItem"
-import ListItemText from "@mui/material/ListItemText"
-import ListItemButton from "@mui/material/ListItemButton"
-
+import { useApi } from "@hooks/useApi"
+import { CreateTask } from "@forms/tasks"
+import { Title } from "@components/Title"
 import { APP_NAME } from "@utils/constants"
 import { Button } from "@components/Button"
 import { Dialog } from "@components/Dialog"
-import { useDebounce } from "@hooks/useDebounce"
+import { ENDPOINTS } from "@utils/constants"
+import useDebounce from "@hooks/useDebounce"
+import { CreateProject } from "@forms/projects"
+import { SIDEBAR_WIDTH } from "@utils/constants"
+import { APP_BAR_HEIGHT } from "@utils/constants"
 import { IconButton } from "@components/IconButton"
 
-const BASEURL = "http://localhost:5000/api/v1"
+dayjs.extend(relativeTime)
 
 const Home: NextPage = () => {
-  const [projects, setProjects] = useState([])
+  const [api] = useApi()
+
+  const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState<any>([])
   const [project, setProject] = useState<any>(null)
-
-  const [taskCreateLoading, setTaskCreateLoading] = useState(false)
-  const [projectCreateLoading, setProjectCreateLoading] = useState(false)
-
-  const onAddTask = async (name: string) => {
-    try {
-      if (!project) {
-        alert("Select a project")
-        return
-      }
-
-      setTaskCreateLoading(true)
-
-      const response = await fetch(`${BASEURL}/tasks`, {
-        body: JSON.stringify({
-          name,
-          projectId: project?._id,
-        }),
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) throw response
-
-      const data = await response.json()
-
-      const tasks = project.tasks || []
-
-      tasks.push(data.data)
-
-      setProject({
-        ...project,
-        tasks: tasks,
-      })
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setTaskCreateLoading(false)
-    }
-  }
-
-  const onAddProject = async (name: string, dueAt: Date) => {
-    try {
-      setProjectCreateLoading(true)
-
-      const response = await fetch(`${BASEURL}/projects`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          dueAt,
-        }),
-      })
-
-      if (!response.ok) throw response
-
-      const data = await response.json()
-
-      setProjects([data.data, ...projects])
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setProjectCreateLoading(false)
-    }
-  }
-
-  const fetchProjects = async (name?: string) => {
-    try {
-      const response = await fetch(`${BASEURL}/projects`)
-
-      if (!response.ok) throw response
-
-      const data = await response.json()
-
-      setProjects(data.data)
-    } catch (err) {
-      console.log(err)
-    }
-  }
 
   useEffect(() => {
     fetchProjects()
+    // eslint-disable-next-line
   }, [])
+
+  useEffect(() => {
+    const temp = [...projects]
+    const index = temp.findIndex((t) => String(t._id) === String(project._id))
+    temp[index] = project
+
+    setProjects(temp)
+
+    // eslint-disable-next-line
+  }, [project])
+
+  const fetchProjects = async (query: string = "") => {
+    try {
+      setLoading(true)
+
+      const response = await api({
+        uri: `${ENDPOINTS.projects}?search=${query}`,
+      })
+
+      setProjects(response?.data)
+      setProject(response?.data[0])
+    } catch (err) {
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -124,21 +85,63 @@ const Home: NextPage = () => {
       </Head>
 
       <Box
-        sx={{
+        sx={(theme: Theme) => ({
           width: "100vw",
           height: "100vh",
-        }}
+          backgroundColor: theme.palette.background.default,
+        })}
       >
-        <Header onAdd={onAddTask} loading={taskCreateLoading} />
+        <Header
+          project={project}
+          onSearch={fetchProjects}
+          onCreate={(task) => {
+            setProject({
+              ...project,
+              tasks: [...project.tasks, task],
+            })
+          }}
+        />
 
-        <Box sx={{ display: "flex", flexDirection: "row" }}>
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            height: `calc(100% - ${APP_BAR_HEIGHT}px)`,
+          }}
+        >
           <SideBar
+            project={project}
+            loading={loading}
             projects={projects}
-            onAdd={onAddProject}
-            loading={projectCreateLoading}
-            onSelect={(project) => setProject(project)}
+            onSelect={(project: any) => setProject(project)}
+            onCreate={(project: any) => {
+              let temp = [...projects]
+              temp.push(project)
+              setProjects(temp)
+            }}
           />
-          <Tasks project={project} />
+
+          <Content
+            project={project}
+            onCreate={(task) => {
+              setProject({
+                ...project,
+                tasks: [...project.tasks, task],
+              })
+            }}
+            onComplete={(task) => {
+              const temp = [...project.tasks]
+              const index = temp.findIndex(
+                (t) => String(t._id) === String(task._id)
+              )
+              temp[index] = task
+              setProject({
+                ...project,
+                tasks: temp,
+              })
+            }}
+          />
         </Box>
       </Box>
     </>
@@ -146,24 +149,15 @@ const Home: NextPage = () => {
 }
 
 const Header = ({
-  onAdd,
+  project,
   onSearch,
-  loading = false,
+  onCreate,
 }: {
-  loading?: boolean
-  onAdd: (args: string) => void
-  onSearch?: (args: string) => void
+  project?: any
+  onCreate?: (project: any) => void
+  onSearch?: (query: string) => void
 }) => {
-  const [name, setName] = useState("")
-
-  const submitHandler = (event: any) => {
-    event.preventDefault()
-
-    onAdd(name)
-  }
-
   const [query, setQuery] = useState("")
-
   const debouncedValue = useDebounce(query)
 
   useEffect(() => {
@@ -173,212 +167,307 @@ const Header = ({
 
   return (
     <Box
-      sx={{
+      sx={(theme: Theme) => ({
         width: "100%",
-        height: 64,
-        backgroundColor: "red",
         display: "flex",
-        alignItems: "center",
         flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "red",
+        padding: theme.spacing(2),
+        height: `${APP_BAR_HEIGHT}px`,
         justifyContent: "space-between",
-      }}
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      })}
     >
       <Box />
-      <Box>
-        <TextField
-          id="search"
-          name="search"
-          value={query}
-          onChange={(event: any) => setQuery(event.target.value)}
-        />
-      </Box>
-      <Box>
+
+      <InputBase
+        id="search"
+        size="small"
+        name="search"
+        value={query}
+        sx={{ color: "white" }}
+        placeholder="Quick find"
+        onChange={(event: any) => setQuery(event.target.value)}
+        startAdornment={
+          <InputAdornment position="start">
+            <SearchIcon sx={{ color: "white" }} />
+          </InputAdornment>
+        }
+      />
+
+      {project ? (
         <Dialog
           title="Add Task"
           trigger={({ toggleOpen }) => (
             <IconButton onClick={toggleOpen}>
-              <AddIcon />
+              <AddIcon sx={{ color: "white" }} />
             </IconButton>
           )}
           content={({ onClose }) => (
-            <Box component="form" onSubmit={submitHandler}>
-              <Box>
-                <TextField
-                  required
-                  fullWidth
-                  id="name"
-                  autoFocus
-                  name="name"
-                  label="Name"
-                  value={name}
-                  onChange={(event: any) => setName(event.target.value)}
-                />
-              </Box>
-              <Box
-                sx={{
-                  pt: 2,
-                  gap: 2,
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Button onClick={onClose} variant="text">
-                  Cancel
-                </Button>
-                <Button type="submit" loading={loading} variant="text">
-                  Create
-                </Button>
-              </Box>
-            </Box>
+            <CreateTask
+              onClose={onClose}
+              onSubmit={onCreate}
+              project={project}
+            />
           )}
         />
-      </Box>
+      ) : (
+        <Box />
+      )}
     </Box>
   )
 }
+
+const AccordionSummary = styled((props: AccordionSummaryProps) => (
+  <MuiAccordionSummary
+    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: "0.9rem" }} />}
+    {...props}
+  />
+))(({ theme }) => ({
+  flexDirection: "row-reverse",
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
+    transform: "rotate(90deg)",
+  },
+  "& .MuiAccordionSummary-content": {
+    marginLeft: theme.spacing(1),
+  },
+}))
 
 const SideBar = ({
-  onAdd,
+  loading,
+  project,
+  onCreate,
   projects,
   onSelect,
-  loading = false,
 }: {
+  project: any
   projects: any[]
   loading: boolean
-  onSelect: (args: any) => void
-  onAdd: (name: string, dueAt: any) => void
+  onSelect: (project: any) => void
+  onCreate: (project: any) => void
 }) => {
-  const [name, setName] = useState("")
-  const [dueAt, setDueAt] = useState<any>(null)
-
-  const submitHandler = (event: any) => {
-    event.preventDefault()
-
-    onAdd(name, dueAt)
-
-    setName("")
-    setDueAt(null)
-  }
-
   return (
     <Box
-      sx={{
-        width: 400,
-        height: "100%",
-        backgroundColor: "grey",
-      }}
+      sx={(theme: Theme) => ({
+        pt: 2,
+        display: "flex",
+        width: SIDEBAR_WIDTH,
+        flexDirection: "column",
+        borderRight: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.grey[100],
+      })}
     >
-      <Accordion variant="outlined" defaultExpanded={true}>
-        <AccordionSummary id="panel1a-header" aria-controls="panel1a-content">
-          <Box
-            sx={{
-              width: "100%",
-              display: "flex",
-              // end
-            }}
+      {loading ? (
+        <Box
+          sx={{
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <MuiAccordion
+            square
+            elevation={0}
+            disableGutters
+            defaultExpanded={true}
+            sx={{ backgroundColor: "transparent" }}
           >
-            <Typography>Accordion 1</Typography>
-            <IconButton>
-              <AddIcon />
-            </IconButton>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <List>
-            {projects.map((project: any) => (
-              <ListItem key={project._id} onClick={() => onSelect(project)}>
-                <ListItemButton>
-                  <ListItemText
-                    primary={`${project.name} ${project.tasks.length}`}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </AccordionDetails>
-      </Accordion>
+            <AccordionSummary id="projects" aria-controls="projects">
+              <Box
+                sx={{
+                  width: "100%",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold" }}>Projects</Typography>
+                <AddIcon />
+              </Box>
+            </AccordionSummary>
+            <MuiAccordionDetails>
+              {projects.map((p: any) => (
+                <Box
+                  key={p._id}
+                  onClick={() => onSelect(p)}
+                  sx={{
+                    px: 4,
+                    py: 1,
+                    display: "flex",
+                    cursor: "pointer",
+                    alignItems: "center",
+                    "&:hover": {
+                      fontWeight: "bold",
+                    },
+                  }}
+                >
+                  <Typography
+                    color="gray"
+                    variant="subtitle2"
+                    sx={{
+                      mr: 0.5,
+                      fontWeight: p._id === project._id ? "bold" : "inherit",
+                    }}
+                  >
+                    {p.name}
+                  </Typography>
+                  <Typography variant="caption" color="lightgray">
+                    {p.tasks.length}
+                  </Typography>
+                </Box>
+              ))}
+            </MuiAccordionDetails>
+          </MuiAccordion>
 
-      <Dialog
-        title="Add Project"
-        trigger={({ toggleOpen }) => (
-          <Button startIcon={<AddIcon />} variant="text" onClick={toggleOpen}>
-            Add Project
-          </Button>
-        )}
-        content={({ onClose }) => (
-          <Box component="form" onSubmit={submitHandler}>
-            <Box>
-              <TextField
-                required
-                fullWidth
-                id="name"
-                autoFocus
-                name="name"
-                label="Name"
-                value={name}
-                onChange={(event: any) => setName(event.target.value)}
-              />
-            </Box>
-            <Box>
-              <TextField
-                required
-                fullWidth
-                id="dueAt"
-                type="date"
-                name="dueAt"
-                label="Due At"
-                value={dueAt}
-                onChange={(event: any) => setDueAt(event.target.value)}
-              />
-            </Box>
-            <Box
-              sx={{
-                pt: 2,
-                gap: 2,
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-              }}
-            >
-              <Button onClick={onClose} variant="text">
-                Cancel
+          <Box sx={{ pb: 1 }} />
+
+          <Dialog
+            title="Add Project"
+            trigger={({ toggleOpen }) => (
+              <Button
+                variant="text"
+                onClick={toggleOpen}
+                startIcon={<AddIcon color="error" />}
+                sx={{ pl: 2, justifyContent: "flex-start", color: "gray" }}
+              >
+                Add Project
               </Button>
-              <Button type="submit" loading={loading} variant="text">
-                Create
-              </Button>
-            </Box>
-          </Box>
-        )}
-      />
+            )}
+            content={({ onClose }) => (
+              <CreateProject onClose={onClose} onSubmit={onCreate} />
+            )}
+          />
+        </>
+      )}
     </Box>
   )
 }
 
-const Tasks = ({ project }: { project?: any }) => {
+const Content = ({
+  project,
+  onCreate,
+  onComplete,
+}: {
+  project?: any
+  onCreate?: (task: any) => void
+  onComplete?: (task: any) => void
+}) => {
   const [tasks, setTasks] = useState([])
 
   useEffect(() => {
-    if (project) {
-      setTasks(project.tasks || [])
-    }
+    if (project) setTasks(project.tasks || [])
+    else setTasks([])
   }, [project])
 
   return (
     <Box
-      sx={{
-        width: 400,
+      sx={(theme: Theme) => ({
+        width: "100%",
         height: "100%",
-        backgroundColor: "grey",
-        border: "1px solid #eaeaea",
-      }}
+        padding: theme.spacing(4),
+      })}
     >
-      {/* Check for empty */}
-      {project
-        ? tasks.map((task: any) => <Box key={task._id}>{task.name}</Box>)
-        : "Select a project"}
+      <Title sx={{ ml: 5 }}>{project?.name}</Title>
+
+      <Box sx={{ pb: 1 }} />
+
+      {!project && "Select a project"}
+
+      {tasks.map((task: any) => (
+        <Task task={task} key={task._id} onComplete={onComplete} />
+      ))}
+
+      <Box sx={{ pb: 1 }} />
+
+      {project && (
+        <Dialog
+          title="Add Task"
+          trigger={({ toggleOpen }) => (
+            <Button
+              variant="text"
+              onClick={toggleOpen}
+              startIcon={<AddIcon color="error" />}
+              sx={{ pl: 2, justifyContent: "flex-start", color: "gray" }}
+            >
+              Add Task
+            </Button>
+          )}
+          content={({ onClose }) => (
+            <CreateTask
+              onClose={onClose}
+              project={project}
+              onSubmit={onCreate}
+            />
+          )}
+        />
+      )}
+    </Box>
+  )
+}
+
+const Task = ({
+  task,
+  onComplete,
+}: {
+  task?: any
+  onComplete?: (task: any) => void
+}) => {
+  const [api] = useApi()
+
+  const [loading, setLoading] = useState<boolean>(false)
+
+  const markCompleted = async () => {
+    try {
+      setLoading(true)
+
+      const body = {
+        status: task.status === "completed" ? "pending" : "completed",
+      }
+
+      const response = await api({
+        body,
+        method: "PUT",
+        uri: `${ENDPOINTS.tasks}/status/${task._id}`,
+      })
+
+      onComplete && onComplete(response?.data)
+    } catch (err) {
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Box
+      sx={(theme: Theme) => ({
+        display: "flex",
+        flexDirection: "row",
+        py: theme.spacing(1),
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      })}
+    >
+      <Box sx={{ mr: 1 }}>
+        <IconButton
+          disabled={loading}
+          onClick={markCompleted}
+          color={task.status === "completed" ? "success" : "primary"}
+        >
+          <FiberManualRecordOutlinedIcon />
+        </IconButton>
+      </Box>
+
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontStyle: "italic" }}>
+          {task.name}
+        </Typography>
+        <Typography variant="caption">
+          {task.doneAt ? dayjs(task.doneAt).fromNow(true) : ""}
+        </Typography>
+      </Box>
     </Box>
   )
 }

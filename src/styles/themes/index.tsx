@@ -6,15 +6,12 @@ import { createTheme, ThemeProvider } from "@mui/material/styles"
 import Palette from "./palette"
 import Typography from "./typography"
 import componentsOverride from "./overrides"
-import { useAppContext } from "@contexts/index"
 
 export default function ThemeCustomization({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { state } = useAppContext()
-
   const theme = useMemo(
     () => ({
       breakpoints: {
@@ -37,10 +34,10 @@ export default function ThemeCustomization({
       shape: {
         borderRadius: 4,
       },
-      palette: Palette(state.auth.theme),
+      palette: Palette("light"),
       typography: Typography,
     }),
-    [state.auth.theme]
+    []
   )
 
   const customTheme = createTheme(theme)

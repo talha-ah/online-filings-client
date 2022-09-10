@@ -30,33 +30,6 @@ export type Metadata = {
   [key: string]: any
 }
 
-export type AuthStateType = {
-  user: User
-  token: string
-  isAuth: boolean
-  loading: boolean
-  theme: ThemeMode
-  refresh_token: string
-}
-
-export type NavLink = {
-  type: string
-  href?: string
-  label: string
-  color?: string
-  exact?: boolean
-  children?: NavLink[]
-  icon?: React.ReactElement
-}
-
-export type MenuLink = {
-  type: string
-  href?: string
-  label: string
-  icon?: React.ReactElement
-  onClick?: () => void
-}
-
 export type Response =
   | {
       data: any
@@ -76,35 +49,28 @@ export type Pagination = {
 export type DataTableHeader = {
   id: string
   label: string
-  align?: "right" | "inherit" | "left" | "center" | "justify"
+  sort?: string
+  filter?: string
+  sortable?: boolean
+  filterable?: boolean
   width?: string | number
   minWidth?: string | number
-  sortable?: boolean
-  sort?: string
-  filterable?: boolean
-  filter?: string
   format?: (value: any) => string
   render?: (value: any) => React.ReactNode
+  align?: "right" | "inherit" | "left" | "center" | "justify"
 }
 
-export type User = {
+export type Task = {
   _id: string
+  dueAt: Date
   name: string
-  first_name: string
-  last_name?: string
-  email: string
-  phone?: string
-  role: string
-  status?: "active" | "inactive"
+  status: "pending" | "completed"
 }
 
-export type QueryType = "author" | "article" | "co-author"
-
-export type Invite = {
+export type Project = {
   _id: string
+  dueAt: Date
   name: string
-  first_name: string
-  last_name?: string
-  email: string
-  organization_id: string
+  tasks: Task[]
+  status: "pending" | "completed"
 }

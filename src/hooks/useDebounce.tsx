@@ -14,4 +14,4 @@ function useDebounce<T>(value: T, delay?: number): T {
   return debouncedValue
 }
 
-module.exports.useDebounce = useDebounce
+export default useDebounce

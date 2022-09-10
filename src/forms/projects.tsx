@@ -8,8 +8,9 @@ import { useApi } from "@hooks/useApi"
 import { Alert } from "@components/Alert"
 import { Button } from "@components/Button"
 import { ENDPOINTS } from "@utils/constants"
+import { DatePicker } from "@components/DatePicker"
 
-export function InviteUser({
+export function CreateProject({
   onClose,
   onSubmit,
 }: {
@@ -31,16 +32,15 @@ export function InviteUser({
       const data = new FormData(event.currentTarget)
 
       const body = {
-        firstName: data.get("firstName"),
-        lastName: data.get("lastName") || "",
-        email: data.get("email"),
+        name: data.get("name"),
+        dueAt: data.get("dueAt"),
       }
 
       const response = await api({
+        body,
         method: "POST",
-        uri: ENDPOINTS.invites,
-        body: JSON.stringify(body),
-        message: "Invite sent successfully",
+        uri: ENDPOINTS.projects,
+        message: "Project created successfully",
       })
 
       onSubmit && onSubmit(response?.data)
@@ -67,34 +67,23 @@ export function InviteUser({
         sx={{ width: "100%", mt: 1 }}
       >
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              autoComplete="given-name"
-              name="firstName"
-              required
-              fullWidth
-              id="firstName"
-              label="First Name"
-              autoFocus
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              id="lastName"
-              label="Last Name"
-              name="lastName"
-              autoComplete="family-name"
-            />
-          </Grid>
           <Grid item xs={12}>
             <TextField
               required
+              autoFocus
               fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
+              id="name"
+              name="name"
+              label="Name"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <DatePicker
+              required
+              fullWidth
+              id="dueAt"
+              name="dueAt"
+              label="Due At"
             />
           </Grid>
         </Grid>
@@ -115,7 +104,7 @@ export function InviteUser({
             Cancel
           </Button>
           <Button type="submit" loading={loading} variant="text">
-            Invite
+            Create
           </Button>
         </Box>
       </Box>
@@ -123,7 +112,7 @@ export function InviteUser({
   )
 }
 
-export function EditUser({
+export function EditProject({
   value,
   onClose,
   onSubmit,
@@ -147,16 +136,15 @@ export function EditUser({
       const data = new FormData(event.currentTarget)
 
       const body = {
-        firstName: data.get("firstName"),
-        lastName: data.get("lastName") || "",
-        email: data.get("email"),
+        name: data.get("name"),
+        dueAt: data.get("dueAt"),
       }
 
       const response = await api({
+        body,
         method: "PUT",
-        uri: `${ENDPOINTS.organizationUsers}/${value._id}`,
-        body: JSON.stringify(body),
-        message: "User updated successfully",
+        uri: `${ENDPOINTS.projects}/${value._id}`,
+        message: "Project updated successfully",
       })
 
       onSubmit && onSubmit(response?.data)
@@ -185,35 +173,23 @@ export function EditUser({
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
             <TextField
-              autoComplete="given-name"
-              name="firstName"
               required
-              fullWidth
-              id="firstName"
-              label="First Name"
               autoFocus
-              defaultValue={value.firstName}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
               fullWidth
-              id="lastName"
-              label="Last Name"
-              name="lastName"
-              autoComplete="family-name"
-              defaultValue={value.lastName}
+              id="name"
+              name="name"
+              label="Project Name"
+              defaultValue={value.name}
             />
           </Grid>
           <Grid item xs={12}>
-            <TextField
+            <DatePicker
               required
               fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              defaultValue={value.email}
+              id="dueAt"
+              name="dueAt"
+              label="Due At"
+              defaultValue={value.dueAt}
             />
           </Grid>
         </Grid>

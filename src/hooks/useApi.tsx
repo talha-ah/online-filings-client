@@ -1,5 +1,3 @@
-import { useRouter } from "next/router"
-
 import { useSnackbar } from "notistack"
 import { useLayoutEffect, useEffect, useRef } from "react"
 
@@ -7,14 +5,11 @@ import DateUtility from "@utils/date"
 import { BASE_URL } from "@utils/constants"
 import { Response, T } from "@utils/types"
 import { getBrowserItem } from "@utils/browser-utility"
-import { useAppContext, AuthTypes } from "@contexts/index"
 
 const useBrowserLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect
 
 export const useApi = () => {
-  const router = useRouter()
-  const { dispatch } = useAppContext()
   const { enqueueSnackbar } = useSnackbar()
 
   let controller: any = null
@@ -53,8 +48,8 @@ export const useApi = () => {
       }
 
       const response = await fetch(BASE_URL + uri, {
-        body,
         method,
+        body: JSON.stringify(body),
         signal: controller?.signal,
         headers: headers || myHeaders,
       })
@@ -102,14 +97,6 @@ export const useApi = () => {
 
       let status = error.status
 
-      // if (status === 403) {
-      //   // 401 : Token expired / invalid
-      //   // Ask to relogin
-      //   dispatch({ type: AuthTypes.LOGOUT })
-      //   router.replace("/")
-
-      //   // TODO: Use refresh token to get new token
-      // } else
       if (status) {
         if (!Array.isArray(error.message)) {
           enqueueSnackbar(error?.message, {

@@ -5,9 +5,6 @@ import { AppProps } from "next/app"
 import { SnackbarProvider } from "notistack"
 import { CacheProvider, EmotionCache } from "@emotion/react"
 
-import { AppProvider } from "@contexts/index"
-import { AuthWrapper } from "@hooks/auth"
-
 import emotionCache from "@utils/emotionCache"
 import ThemeCustomization from "@styles/themes/index"
 
@@ -30,17 +27,13 @@ export default function App(props: LocalAppProps) {
         />
       </Head>
 
-      <AppProvider>
-        <CacheProvider value={emotionCache}>
-          <ThemeCustomization>
-            <SnackbarProvider maxSnack={3}>
-              <AuthWrapper>
-                <Component {...pageProps} />
-              </AuthWrapper>
-            </SnackbarProvider>
-          </ThemeCustomization>
-        </CacheProvider>
-      </AppProvider>
+      <CacheProvider value={emotionCache}>
+        <ThemeCustomization>
+          <SnackbarProvider maxSnack={3}>
+            <Component {...pageProps} />
+          </SnackbarProvider>
+        </ThemeCustomization>
+      </CacheProvider>
     </>
   )
 }

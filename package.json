@@ -20,7 +20,7 @@
     "@mui/styles": "^5.9.0",
     "@mui/system": "^5.9.0",
     "@mui/x-data-grid": "^5.13.1",
-    "@mui/x-date-pickers": "^5.0.0-beta.2",
+    "@mui/x-date-pickers": "^5.0.1",
     "dayjs": "^1.11.1",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.5.23",
